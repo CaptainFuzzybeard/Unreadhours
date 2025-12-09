@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Screen time → Books calculator</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#7dd3fc;--muted:#9aa8b2;--glass: rgba(255,255,255,0.03)}
+    html,body{height:100%;}
+    body{font-family:Inter,ui-sans-serif,system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#071022 0%, #08121a 60%); color:#e6f0f6; margin:0; display:flex; align-items:center; justify-content:center; padding:24px;}
+    .wrap{max-width:880px; width:100%;}
+    header{display:flex; align-items:center; gap:14px; margin-bottom:18px}
+    h1{font-size:20px; margin:0}
+    p.lead{margin:6px 0 18px; color:var(--muted)}
+
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:18px; border-radius:12px; box-shadow: 0 6px 18px rgba(2,6,23,0.6);}
+
+    label{font-size:13px; color:var(--muted)}
+    input[type=number], input[type=text], select{width:100%; padding:10px 12px; margin-top:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); background:transparent; color:inherit}
+    .row{display:flex; gap:12px}
+    button{background:var(--accent); border:none; padding:10px 12px; border-radius:8px; cursor:pointer; color:#042022; font-weight:600}
+    button.ghost{background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted)}
+
+    .paragraph{background:var(--glass); padding:12px; border-radius:8px; margin-top:8px; color: #dff6ff}
+    .controls{display:flex; gap:8px; align-items:center; margin-top:10px}
+    .big{font-size:28px; font-weight:700}
+    .muted{color:var(--muted); font-size:13px}
+    .result{margin-top:12px; padding:12px; border-radius:8px; background:linear-gradient(90deg, rgba(125,211,252,0.06), rgba(125,211,252,0.02)); color:#bff0ff}
+    footer{margin-top:14px; color:var(--muted); font-size:13px}
+
+    @media (max-width:760px){.grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div style="width:48px; height:48px; border-radius:10px; background:linear-gradient(135deg,#7dd3fc22,#60a5fa22); display:flex;align-items:center;justify-content:center; font-weight:700; color:var(--accent)">B</div>
+      <div>
+        <h1>Screen time → Books (single page)</h1>
+        <p class="lead">Enter your weekly screen time, take a brief reading-speed test, and see how many books you could have read instead.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <label>1) Weekly screen time</label>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <input id="hours" type="number" min="0" step="0.5" placeholder="Hours per week (e.g. 28)" />
+          <input id="minutes" type="number" min="0" max="59" step="1" placeholder="Minutes" />
+        </div>
+        <div style="margin-top:12px;">
+          <label class="muted">Or paste total minutes</label>
+          <input id="totalMinutes" type="number" min="0" placeholder="Total minutes per week (optional)" />
+        </div>
+
+        <hr style="margin:14px 0; border:none; height:1px; background:rgba(255,255,255,0.03)">
+
+        <label>2) How much of that screen time would you replace with reading?</label>
+        <div style="display:flex; gap:8px; margin-top:8px; align-items:center">
+          <input id="pct" type="range" min="10" max="100" value="60" step="5" style="flex:1" />
+          <div id="pctVal" class="muted">60%</div>
+        </div>
+
+        <hr style="margin:14px 0; border:none; height:1px; background:rgba(255,255,255,0.03)">
+
+        <label>3) Choose an average book length</label>
+        <select id="bookLength">
+          <option value="50000">Short — 50,000 words</option>
+          <option value="80000" selected>Medium — 80,000 words (typical novel)</option>
+          <option value="120000">Long — 120,000 words</option>
+          <option value="custom">Custom (words)</option>
+        </select>
+        <input id="customWords" type="number" min="1000" placeholder="Custom words (e.g. 65000)" style="display:none; margin-top:8px" />
+
+        <div style="margin-top:14px; display:flex; gap:8px;">
+          <button id="calc">Calculate books</button>
+          <button id="useLast" class="ghost">Use last saved WPM</button>
+        </div>
+
+        <div id="result" class="result" style="display:none"></div>
+        <footer>
+          Tip: measuring your true reading speed with the short test (right) gives a personalised answer. Results are approximate.
+        </footer>
+      </div>
+
+      <div class="card">
+        <label>Reading-speed test (quick)</label>
+        <div class="paragraph" id="testText">
+          <strong>Start the test, read the passage at a comfortable pace, then press "Stop".</strong>
+          <p id="passage" style="margin-top:10px">The morning sky was pale and clear. Birds moved in thin, precise patterns across the cool air while a distant bell marked the hour. In the garden, a single rose had opened fully; its scent was small and complete, like the memory of a day that has not yet begun.</p>
+        </div>
+
+        <div class="controls">
+          <button id="start">Start</button>
+          <button id="stop" class="ghost" disabled>Stop</button>
+          <button id="reset" class="ghost">Reset</button>
+          <div style="margin-left:auto; text-align:right">
+            <div class="muted">Reading speed</div>
+            <div id="wpm" class="big">-- WPM</div>
+            <div class="muted" id="wordsCount">Words in passage: --</div>
+          </div>
+        </div>
+
+        <hr style="margin:14px 0; border:none; height:1px; background:rgba(255,255,255,0.03)">
+
+        <div>
+          <label class="muted">Preview / manual WPM</label>
+          <div style="display:flex; gap:8px; margin-top:8px; align-items:center">
+            <input id="manualWpm" type="number" min="50" placeholder="e.g. 250" />
+            <button id="saveWpm" class="ghost">Save WPM</button>
+          </div>
+          <div class="muted" style="margin-top:8px">We store WPM locally so you can reuse it in future visits.</div>
+        </div>
+
+        <div style="margin-top:14px"><small class="muted">How it works: WPM = (words in passage) ÷ (seconds spent / 60). The calculator uses WPM × reading minutes available to estimate how many words (and thus books) you could read.</small></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Elements
+    const pct = document.getElementById('pct');
+    const pctVal = document.getElementById('pctVal');
+    const hours = document.getElementById('hours');
+    const minutes = document.getElementById('minutes');
+    const totalMinutes = document.getElementById('totalMinutes');
+    const bookLength = document.getElementById('bookLength');
+    const customWords = document.getElementById('customWords');
+    const calc = document.getElementById('calc');
+    const result = document.getElementById('result');
+    const startBtn = document.getElementById('start');
+    const stopBtn = document.getElementById('stop');
+    const resetBtn = document.getElementById('reset');
+    const passage = document.getElementById('passage');
+    const wpmEl = document.getElementById('wpm');
+    const wordsCountEl = document.getElementById('wordsCount');
+    const manualWpm = document.getElementById('manualWpm');
+    const saveWpm = document.getElementById('saveWpm');
+    const useLast = document.getElementById('useLast');
+
+    // Passage words
+    function countWords(text){
+      return text.trim().split(/\s+/).filter(Boolean).length;
+    }
+    const wordsInPassage = countWords(passage.innerText || passage.textContent);
+    wordsCountEl.textContent = 'Words in passage: ' + wordsInPassage;
+
+    // range display
+    pct.addEventListener('input', ()=> pctVal.textContent = pct.value + '%');
+
+    // show custom words input
+    bookLength.addEventListener('change', ()=>{
+      if(bookLength.value === 'custom') customWords.style.display = 'block'; else customWords.style.display = 'none';
+    });
+
+    // timer
+    let startTime = null;
+    let elapsed = 0;
+    let running = false;
+
+    startBtn.addEventListener('click', ()=>{
+      startTime = performance.now();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      running = true;
+      // visual cue
+      passage.style.outline = '2px solid rgba(125,211,252,0.14)';
+      passage.scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+
+    stopBtn.addEventListener('click', ()=>{
+      if(!running) return;
+      const end = performance.now();
+      elapsed = (end - startTime) / 1000; // seconds
+      running = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      passage.style.outline = 'none';
+
+      // compute WPM
+      const wpm = Math.round(wordsInPassage / (elapsed / 60));
+      wpmEl.textContent = wpm + ' WPM';
+      localStorage.setItem('wpm', wpm);
+      manualWpm.value = '';
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      startTime = null; elapsed = 0; running=false;
+      startBtn.disabled=false; stopBtn.disabled=true;
+      passage.style.outline = 'none';
+      wpmEl.textContent = '-- WPM';
+    });
+
+    saveWpm.addEventListener('click', ()=>{
+      const v = Number(manualWpm.value);
+      if(!v || v < 20){ alert('Enter a realistic WPM (eg. 150 - 400).'); return; }
+      localStorage.setItem('wpm', v);
+      wpmEl.textContent = v + ' WPM';
+      manualWpm.value = '';
+    });
+
+    useLast.addEventListener('click', ()=>{
+      const v = localStorage.getItem('wpm');
+      if(!v){ alert('No saved WPM found — take the quick test or enter manually.'); return; }
+      wpmEl.textContent = v + ' WPM';
+    });
+
+    // calculate
+    calc.addEventListener('click', ()=>{
+      // determine minutes available
+      let mins = Number(totalMinutes.value) || 0;
+      if(!mins){
+        const h = Number(hours.value) || 0;
+        const m = Number(minutes.value) || 0;
+        mins = h * 60 + m;
+      }
+      if(mins <= 0){ alert('Please enter your weekly screen time (hours or total minutes).'); return; }
+
+      // fraction
+      const fraction = Number(pct.value) / 100;
+      const readingMinutes = mins * fraction;
+
+      // get WPM
+      let wpm = Number(localStorage.getItem('wpm')) || 0;
+      // if a measured value on screen shown, parse
+      if(wpmEl.textContent && wpmEl.textContent.includes('WPM')){
+        const parsed = Number(wpmEl.textContent.replace('WPM','').trim());
+        if(parsed) wpm = parsed;
+      }
+      // fallback to manual input if provided
+      if(Number(manualWpm.value)) wpm = Number(manualWpm.value);
+
+      if(!wpm || wpm < 30){
+        if(!confirm('WPM not set or seems low. Use default 250 WPM?')){
+          return; // let user take test or enter
+        } else {
+          wpm = 250;
+        }
+      }
+
+      // book words
+      let bookWords = Number(bookLength.value);
+      if(bookLength.value === 'custom'){
+        const cw = Number(customWords.value);
+        if(!cw || cw < 1000){ alert('Enter a valid number of words for custom book length.'); return; }
+        bookWords = cw;
+      }
+
+      const totalWords = Math.round(wpm * readingMinutes);
+      const booksFloat = totalWords / bookWords;
+      const books = Math.floor(booksFloat);
+      const remainderWords = totalWords - books * bookWords;
+
+      // reading time per book
+      const minutesPerBook = Math.round(bookWords / wpm);
+
+      // nicer formatting
+      function fmtMinutes(m){
+        const h = Math.floor(m/60); const mm = Math.round(m%60);
+        if(h>0) return h + 'h ' + mm + 'm';
+        return mm + 'm';
+      }
+
+      result.style.display = 'block';
+      result.innerHTML = `
+        <div style="font-size:16px;font-weight:700">Results</div>
+        <div style="margin-top:8px">Estimated reading speed: <strong>${wpm} WPM</strong></div>
+        <div style="margin-top:6px">Weekly screen time used for reading: <strong>${Math.round(readingMinutes)} minutes</strong> (${pct.value}% of ${mins} min)</div>
+        <div style="margin-top:6px">Total words you could read: <strong>${totalWords.toLocaleString()}</strong></div>
+        <div style="margin-top:6px">Average book length used: <strong>${bookWords.toLocaleString()} words</strong></div>
+        <div style="margin-top:8px; font-size:18px;">You could have read: <span style="font-size:28px; font-weight:800">${books}</span> full book(s)</div>
+        <div style="margin-top:6px" class="muted">Plus about ${remainderWords.toLocaleString()} words towards the next book (~${Math.round(remainderWords/wpm)} minutes)</div>
+        <div style="margin-top:10px">At ${wpm} WPM, one book (~${bookWords.toLocaleString()} words) takes ~ <strong>${fmtMinutes(minutesPerBook)}</strong>.</div>
+      `;
+
+    });
+
+    // on load populate saved WPM
+    (function(){
+      const v = localStorage.getItem('wpm');
+      if(v){ wpmEl.textContent = v + ' WPM'; }
+    })();
+
+  </script>
+</body>
+</html>
